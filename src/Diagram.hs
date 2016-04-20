@@ -2,6 +2,8 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 
+module Diagram where
+
 import Diagrams.Prelude
 import Diagrams.Backend.SVG.CmdLine
 
@@ -36,12 +38,6 @@ tOntoI t i = alignBC t === strutY spc === alignTC i
 tIntoT t1 t2 = alignBR t1 # translate ((1 - spc) *^ dir) `atop` alignTL t2
   where dir = V2 1 (-1)
 
-iX86inARM = iDiagram "x86" "ARM"
-iPerlInX86 = iDiagram "Perl" "x86"
-mlToCInPerl = tDiagram "ML" "C" "Perl"
-proToArmInMl = tDiagram "Prolog" "ARM" "C"
-
-main = mainWith (proToArmInMl `tIntoT` mlToCInPerl `tOntoI` iPerlInX86 `iOntoI` iX86inARM)
 -- main = mainWith (proToArmInMl `tIntoT` mlToCInPerl)
 --main = mainWith (mlToCInPerl `tOntoI` iPerlInX86)
 --main = mainWith (iOntoI (iDiagram "LISP" "ML")(iIntoT (iDiagram "ML" "C") (tDiagram "C" "x86" "x86")))
