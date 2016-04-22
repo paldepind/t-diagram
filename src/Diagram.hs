@@ -4,8 +4,10 @@
 
 module Diagram where
 
-import Diagrams.Prelude
+import Diagrams.Prelude hiding (All, (:>))
 import Diagrams.Backend.SVG.CmdLine
+import Data.Typeable
+import Diagrams.TwoD.Text
 
 -- tSquare :: (InSpace V2 n t, TrailLike t, OrderedField n) => String -> n -> _
 -- tSquare :: String -> _ -> _
@@ -22,14 +24,17 @@ alignTC = alignT . centerX
 
 alignBC = alignB . centerX
 
-tDiagram :: String -> String -> String -> Diagram B
+tDiagram :: (RealFloat n, Typeable n,
+             Renderable (Diagrams.TwoD.Text.Text n) b,
+             Renderable (Path V2 n) b) =>
+            String -> String -> String -> QDiagram b V2 n Any
 tDiagram sl tl il =
-  ((tSquare sl 1 ||| square 1 ||| tSquare il 1) # center === tSquare il 1) # lw 1
+  ((tSquare sl 1 ||| square 1 ||| tSquare tl 1) # center === tSquare il 1) # lw 1
 
-iDiagram :: String -> String -> Diagram B
+-- iDiagram :: String -> String -> Diagram B
 iDiagram sl ml = tSquare sl 1 === tSquare ml 1
 
-iIntoT i t = alignBC i ||| strutX spc ||| alignTC t
+iIntoT i t = alignBC i # translateY (-1) ||| strutX spc ||| alignTC t
 
 iOntoI i1 i2 = alignBC i1 === strutY spc === alignTC i2
 
