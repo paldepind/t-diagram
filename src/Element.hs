@@ -9,10 +9,12 @@
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 module Element
        (
          Element(Compiler, Interpreter, (:>))
+       , toTree
        , draw
        ) where
 
@@ -32,9 +34,9 @@ type family All c xs :: Constraint where
 -- | Represents the diagram elments at the type level
 data Element = Interpreter Symbol Symbol
              | Compiler Symbol Symbol Symbol
-             -- | Element :> Element
+             | Element :> Element
 
-data a :> b
+-- data a :> b
 
 -- | Represents a tre of diagram elements at the term level
 -- the phantom type represents the type of the root node
@@ -73,65 +75,74 @@ printComp a b = "Interpreter from " ++ symbolVal (Proxy :: Proxy a) ++ " to " ++
 
 -- | Class for turning Element types into tree at the term level
 class ToTree d where
-  type NewRoot d :: Element
-  toTree :: Proxy d -> Root (NewRoot d)
+  type TreeRoot d :: Element
+  toTree :: Proxy d -> Root (TreeRoot d)
 
 instance (All KnownSymbol '[sl, tl, il]) => ToTree (Compiler sl tl il) where
-  type NewRoot (Compiler sl tl il) = Compiler sl tl il
+  type TreeRoot (Compiler sl tl il) = Compiler sl tl il
   toTree _ = Root (CompilerNode sl tl il Leaf)
     where sl = symbolVal (Proxy :: Proxy sl)
           tl = symbolVal (Proxy :: Proxy tl)
           il = symbolVal (Proxy :: Proxy il)
 
 instance (All KnownSymbol '[sl, ml]) => ToTree (Interpreter sl ml) where
-  type NewRoot (Interpreter sl ml) = Interpreter sl ml
+  type TreeRoot (Interpreter sl ml) = Interpreter sl ml
   toTree _ = Root (InterpreterNode sl ml Leaf)
     where sl = symbolVal (Proxy :: Proxy sl)
           ml = symbolVal (Proxy :: Proxy ml)
 
-instance (ToTree a, ToTree b, ToTree (NewRoot a :> NewRoot b))
+instance (ToTree a, ToTree b, InputTo (TreeRoot a) (TreeRoot b))
          => ToTree ((a :: Element) :> (b :: Element)) where
-  type NewRoot (a :> b) = NewRoot (NewRoot a :> NewRoot b)
-  toTree _ = toTree (toTree (Proxy :: Proxy a)) (toTree (Proxy :: Proxy b))
+  type TreeRoot (a :> b) = NewRoot (TreeRoot a) (TreeRoot b)
+  toTree _ = (toTree (Proxy :: Proxy a)) `inputTo` (toTree (Proxy :: Proxy b))
 
-instance (All KnownSymbol '[sl, ml, ml'], ToTree (Interpreter sl ml), ToTree (Interpreter ml ml'))
-         => ToTree (Root (Interpreter sl ml) :> Root (Interpreter ml ml')) where
-  type NewRoot (Root (Interpreter sl ml) :> Root (Interpreter ml ml')) = Interpreter sl ml'
-  toTree _ = Root $ InterpreterNode sl ml interpreterNode'
-    where (Root (InterpreterNode sl ml _)) = toTree (Proxy :: Proxy (Interpreter sl ml))
-          (Root interpreterNode') = toTree (Proxy :: Proxy (Interpreter ml ml'))          
+-- instance (ToTree b, InputTo a (TreeRoot b))
+--          => ToTree (Root a :> (b :: Element)) where
+--   type TreeRoot (a :> b) = NewRoot (TreeRoot a) (TreeRoot b)
+--   toTree _ = (toTree (Proxy :: Proxy a)) `inputTo` (toTree (Proxy :: Proxy b))
+
+class InputTo (a :: Element) (b :: Element) where
+  type NewRoot a b :: Element
+  inputTo :: Root a -> Root b -> Root (NewRoot a b)
+
+instance (All KnownSymbol '[sl, ml, ml']) --, ToTree (Interpreter sl ml), ToTree (Interpreter ml ml'))
+         => InputTo (Interpreter sl ml) (Interpreter ml ml') where
+  type NewRoot (Interpreter sl ml) (Interpreter ml ml') = Interpreter sl ml'
+  inputTo i i' = Root $ InterpreterNode sl ml interpreterNode'
+    where (Root (InterpreterNode sl ml _)) = i--toTree (Proxy :: Proxy (Interpreter sl ml))
+          (Root interpreterNode') = i'--toTree (Proxy :: Proxy (Interpreter ml ml'))
 
 instance (All KnownSymbol '[sl, ml, tl, il], ToTree (Interpreter sl ml), ToTree (Compiler ml tl il))
-         => ToTree (Root (Interpreter sl ml) :> Root (Compiler ml tl il)) where
-  type NewRoot (Root (Interpreter sl ml) :> Root (Compiler ml tl il)) = Compiler sl tl il
-  toTree _ = Root $ CompilerNode sl tl il interpreterNode
-    where (Root interpreterNode) = toTree (Proxy :: Proxy (Interpreter sl ml))
-          (Root (CompilerNode sl tl il _))    = toTree (Proxy :: Proxy (Compiler ml tl il))
+         => InputTo (Interpreter sl ml) (Compiler ml tl il) where
+  type NewRoot (Interpreter sl ml) (Compiler ml tl il) = Compiler sl tl il
+  inputTo i c = Root $ CompilerNode sl tl il interpreterNode
+    where (Root interpreterNode) = i--toTree (Proxy :: Proxy (Interpreter sl ml))
+          (Root (CompilerNode sl tl il _))    = c--toTree (Proxy :: Proxy (Compiler ml tl il))
 
 instance (All KnownSymbol '[sl, tl, il, ml], ToTree (Compiler sl tl il), ToTree (Interpreter il ml))
-         => ToTree (Root (Compiler sl tl il) :> Root (Interpreter il ml)) where
-  type NewRoot (Root (Compiler sl tl il) :> Root (Interpreter il ml)) = Compiler sl tl ml
-  toTree _ = Root $ InterpreterNode il sl compilerNode
-    where (Root compilerNode)    = toTree (Proxy :: Proxy (Compiler ml tl il))
-          (Root (InterpreterNode il sl _)) = toTree (Proxy :: Proxy (Interpreter il ml))
+         => InputTo (Compiler sl tl il) (Interpreter il ml) where
+  type NewRoot (Compiler sl tl il) (Interpreter il ml) = Compiler sl tl ml
+  inputTo c i = Root $ InterpreterNode il sl compilerNode
+    where (Root compilerNode)    = c--toTree (Proxy :: Proxy (Compiler ml tl il))
+          (Root (InterpreterNode il sl _)) = i--toTree (Proxy :: Proxy (Interpreter il ml))
 
 instance (All KnownSymbol '[sl, tl, il, tl', il'], ToTree (Compiler sl tl il), ToTree (Compiler il tl' il'))
-         => ToTree (Root (Compiler sl tl il) :> Root (Compiler il tl' il')) where
-  type NewRoot (Root (Compiler sl tl il) :> Root (Compiler il tl' il')) = Compiler sl tl' il'
-  toTree _ = Root $ CompilerNode sl tl il compilerNode
-    where (Root compilerNode)  = toTree (Proxy :: Proxy (Compiler sl tl il))
-          (Root (CompilerNode sl tl il _)) = toTree (Proxy :: Proxy (Compiler il tl' il'))
+         => InputTo (Compiler sl tl il) (Compiler il tl' il') where
+  type NewRoot (Compiler sl tl il) (Compiler il tl' il') = Compiler sl tl' il'
+  inputTo c c' = Root $ CompilerNode sl tl il compilerNode
+    where (Root compilerNode)  = c--toTree (Proxy :: Proxy (Compiler sl tl il))
+          (Root (CompilerNode sl tl il _)) = c'-- toTree (Proxy :: Proxy (Compiler il tl' il'))
 
-inputTo Leaf parent = parent
-inputTo (CompilerNode sl tl il _) parent =
+renderInputTo Leaf parent = parent
+renderInputTo (CompilerNode sl tl il _) parent =
   (tDiagram sl tl il) `tIntoT` parent
-inputTo (InterpreterNode sl ml _) parent =
-  (iDiagram sl ml) `iIntoT` parent
+renderInputTo (InterpreterNode sl ml _) parent =
+  (iDiagram sl ml) `iOntoI` parent
 
 drawElementTree (CompilerNode sl tl il inputElement) =
-   inputElement `inputTo` tDiagram sl tl il
+   inputElement `renderInputTo` tDiagram sl tl il
 drawElementTree (InterpreterNode sl ml inputElement) =
-   inputElement `inputTo` iDiagram sl ml
+   inputElement `renderInputTo` iDiagram sl ml
 
 draw :: (RealFloat n, Typeable n,
          Renderable (Diagrams.TwoD.Text.Text n) b,

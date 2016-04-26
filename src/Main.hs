@@ -1,4 +1,3 @@
-
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -28,7 +27,8 @@ proToArmInMl = tDiagram "PL" "ARM" "C"
 
 -- main = mainWith (proToArmInMl `tIntoT` mlToCInPerl `tOntoI` iPerlInX86 `iOntoI` iX86inARM)
 -- main = mainWith (draw (Proxy :: Proxy (Compiler "ML" "C" "Perl")) :: Diagram B)
--- type Dia = Interpreter "Lisp" "Haskell" :> Interpreter "Haskell" "ML" :> Compiler "ML" "C" "Perl"
+-- type Dia = Interpreter "Lisp" "Haskell" :> Interpreter "Haskell" "ML"-- :> Compiler "ML" "C" "Perl"
 -- type Dia = Interpreter "Haskell" "ML" :> Compiler "ML" "C" "Perl"
+-- type Dia = Compiler "Haskell" "ML" "C" :> Interpreter "C" "x86"
 type Dia = Interpreter "C" "Lisp" :> Compiler "Lisp" "HS" "Perl" :> Compiler "Perl" "C" "x86"
 main = mainWith (draw (Proxy :: Proxy Dia) :: Diagram B)
