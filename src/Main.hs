@@ -29,5 +29,6 @@ proToArmInMl = tDiagram "PL" "ARM" "C"
 -- main = mainWith (proToArmInMl `tIntoT` mlToCInPerl `tOntoI` iPerlInX86 `iOntoI` iX86inARM)
 -- main = mainWith (draw (Proxy :: Proxy (Compiler "ML" "C" "Perl")) :: Diagram B)
 -- type Dia = Interpreter "Lisp" "Haskell" :> Interpreter "Haskell" "ML" :> Compiler "ML" "C" "Perl"
-type Dia = Interpreter "Haskell" "ML" :> Compiler "ML" "C" "Perl"
+-- type Dia = Interpreter "Haskell" "ML" :> Compiler "ML" "C" "Perl"
+type Dia = Interpreter "C" "Lisp" :> Compiler "Lisp" "HS" "Perl" :> Compiler "Perl" "C" "x86"
 main = mainWith (draw (Proxy :: Proxy Dia) :: Diagram B)
