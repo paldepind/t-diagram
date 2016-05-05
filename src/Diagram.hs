@@ -42,7 +42,3 @@ tOntoI t i = alignBC t === strutY spc === alignTC i
 
 tIntoT t1 t2 = alignBR t1 # translate ((1 - spc) *^ dir) `atop` alignTL t2
   where dir = V2 1 (-1)
-
--- main = mainWith (proToArmInMl `tIntoT` mlToCInPerl)
---main = mainWith (mlToCInPerl `tOntoI` iPerlInX86)
---main = mainWith (iOntoI (iDiagram "LISP" "ML")(iIntoT (iDiagram "ML" "C") (tDiagram "C" "x86" "x86")))

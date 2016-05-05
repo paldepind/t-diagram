@@ -96,16 +96,25 @@ instance InputTo (Compiler sl tl il) (Compiler il tl' il') where
     where (Root compilerNode)  = c
           (Root (CompilerNode sl tl il _)) = c'
 
-renderInputTo Leaf parent = parent
-renderInputTo (CompilerNode sl tl il _) parent =
-  (tDiagram sl tl il) `tIntoT` parent
-renderInputTo (InterpreterNode sl ml _) parent =
-  (iDiagram sl ml) `iOntoI` parent
+renderInputTo (CompilerNode _ _ _ Leaf) = \a b -> b
+renderInputTo (InterpreterNode _ _ (Leaf)) = iIntoT
+renderInputTo (CompilerNode _ _ _ (CompilerNode _ _ _ _)) = tIntoT
+renderInputTo (CompilerNode _ _ _ (InterpreterNode _ _ _)) = iIntoT
+renderInputTo (InterpreterNode _ _ (CompilerNode _ _ _ _)) = tOntoI
+renderInputTo (InterpreterNode _ _ (InterpreterNode _ _ _)) = iOntoI
 
-drawElementTree (CompilerNode sl tl il inputElement) =
-   inputElement `renderInputTo` tDiagram sl tl il
-drawElementTree (InterpreterNode sl ml inputElement) =
-   inputElement `renderInputTo` iDiagram sl ml
+drawElementTree :: (RealFloat n1, Typeable n1,
+                    Renderable (Text n1) b1, Renderable (Path V2 n1) b1) =>
+                   ElementTree -> QDiagram b1 V2 n1 Any
+drawElementTree c@(CompilerNode sl tl il inputNode) =
+  renderInputTo c input parent
+  where parent = tDiagram sl tl il
+        input  = drawElementTree inputNode
+drawElementTree i@(InterpreterNode sl ml inputNode) =
+  renderInputTo i input parent
+  where parent = iDiagram sl ml
+        input  = drawElementTree inputNode
+drawElementTree Leaf = mempty
 
 draw :: (RealFloat n, Typeable n,
          Renderable (Diagrams.TwoD.Text.Text n) b,
