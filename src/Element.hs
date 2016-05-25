@@ -75,14 +75,14 @@ class InputTo (a :: Element) (b :: Element) where
 instance InputTo (Interpreter sl ml) (Interpreter ml ml') where
   type NewRoot (Interpreter sl ml) (Interpreter ml ml') = Interpreter sl ml'
   inputTo i i' = Root $ InterpreterNode sl ml interpreterNode'
-    where (Root (InterpreterNode sl ml _)) = i
-          (Root interpreterNode') = i'
+    where (Root interpreterNode') = i
+          (Root (InterpreterNode sl ml _)) = i'
 
 instance InputTo (Interpreter sl ml) (Compiler ml tl il) where
   type NewRoot (Interpreter sl ml) (Compiler ml tl il) = Compiler sl tl il
   inputTo i c = Root $ CompilerNode sl tl il interpreterNode
     where (Root interpreterNode) = i
-          (Root (CompilerNode sl tl il _))    = c
+          (Root (CompilerNode sl tl il _)) = c
 
 instance InputTo (Compiler sl tl il) (Interpreter il ml) where
   type NewRoot (Compiler sl tl il) (Interpreter il ml) = Compiler sl tl ml
@@ -97,7 +97,7 @@ instance InputTo (Compiler sl tl il) (Compiler il tl' il') where
           (Root (CompilerNode sl tl il _)) = c'
 
 renderInputTo (CompilerNode _ _ _ Leaf) = \a b -> b
-renderInputTo (InterpreterNode _ _ (Leaf)) = iIntoT
+renderInputTo (InterpreterNode _ _ (Leaf)) = mappend
 renderInputTo (CompilerNode _ _ _ (CompilerNode _ _ _ _)) = tIntoT
 renderInputTo (CompilerNode _ _ _ (InterpreterNode _ _ _)) = iIntoT
 renderInputTo (InterpreterNode _ _ (CompilerNode _ _ _ _)) = tOntoI
