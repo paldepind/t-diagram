@@ -22,7 +22,7 @@ squareSides t r b l =
         bottom = hideSide b (hrule 1)
         left = hideSide l (vrule 1)
 
-tSquare t r b l txt = (text txt <> (squareSides t r b l)) # fontSize (normalized 0.08)
+tSquare t r b l txt = (text txt <> (squareSides t r b l)) # fontSize (normalized 0.05)
 
 tSquareTLBR = tSquare True True True True
 tSquareRBL = tSquare False True True True
