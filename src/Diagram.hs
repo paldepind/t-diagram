@@ -14,7 +14,23 @@ import Diagrams.TwoD.Text
 
 spc = 0.2
 
-tSquare t s = (text t <> (square s)) # fontSize (normalized 0.08)
+squareSides t r b l =
+  center $ top === (center $ left ||| strut (1 ^& 1) ||| right) === bottom
+  where hideSide b s = if b then s else mempty
+        top = hideSide t (hrule 1)
+        right = hideSide r (vrule 1)
+        bottom = hideSide b (hrule 1)
+        left = hideSide l (vrule 1)
+
+tSquare t r b l txt = (text txt <> (squareSides t r b l)) # fontSize (normalized 0.08)
+
+tSquareTLBR = tSquare True True True True
+tSquareRBL = tSquare False True True True
+tSquareTBR = tSquare True False True True
+tSquareTLB = tSquare True True True False
+tSquareTRL = tSquare True True False True
+tSquareTLR = tSquare True True False True
+squareT = squareSides True False False False
 
 alignTLS t = t # alignTL # moveOriginBy (V2 (-0.5) (-0.5))
 
@@ -29,10 +45,9 @@ tDiagram :: (RealFloat n, Typeable n,
              Renderable (Path V2 n) b) =>
             String -> String -> String -> QDiagram b V2 n Any
 tDiagram sl tl il =
-  ((tSquare sl 1 ||| square 1 ||| tSquare tl 1) # center === tSquare il 1) # lw 1
+  ((tSquareTBR sl ||| squareT ||| tSquareTLB tl) # center === tSquareRBL il) # lw 1
 
--- iDiagram :: String -> String -> Diagram B
-iDiagram sl ml = tSquare sl 1 === tSquare ml 1
+iDiagram sl ml = tSquareTLR sl === tSquareRBL ml
 
 iIntoT i t = alignBC i # translateY (-1) ||| strutX spc ||| alignTC t
 
