@@ -13,7 +13,7 @@
 
 module Element
        (
-         Element(Compiler, Interpreter, (:>))
+         Element(Compiler, Interpreter, Processor, (:>))
        , toTree
        , draw
        ) where
@@ -34,12 +34,14 @@ type family All c xs :: Constraint where
 -- | Represents the diagram elments at the type level
 data Element = Interpreter Symbol Symbol
              | Compiler Symbol Symbol Symbol
+             | Processor Symbol
              | Element :> Element
 
 -- | Represents a tre of diagram elements at the term level
 -- the phantom type represents the type of the root node
 data ElementTree = CompilerNode String String String ElementTree
                  | InterpreterNode String String ElementTree
+                 | ProcessorNode String ElementTree
                  | Leaf
                  deriving (Show)
 
@@ -62,6 +64,11 @@ instance (All KnownSymbol '[sl, ml]) => ToTree (Interpreter sl ml) where
   toTree _ = Root (InterpreterNode sl ml Leaf)
     where sl = symbolVal (Proxy :: Proxy sl)
           ml = symbolVal (Proxy :: Proxy ml)
+
+instance (KnownSymbol l) => ToTree (Processor l) where
+  type TreeRoot (Processor l) = Processor l
+  toTree _ = Root (ProcessorNode l Leaf)
+    where l = symbolVal (Proxy :: Proxy l)
 
 instance (ToTree a, ToTree b, InputTo (TreeRoot a) (TreeRoot b))
          => ToTree ((a :: Element) :> (b :: Element)) where
@@ -96,12 +103,26 @@ instance InputTo (Compiler sl tl il) (Compiler il tl' il') where
     where (Root compilerNode)  = c
           (Root (CompilerNode sl tl il _)) = c'
 
+instance InputTo (Compiler sl tl il) (Processor il) where
+  type NewRoot (Compiler sl tl il) (Processor il) = Compiler sl tl il
+  inputTo c p = Root $ ProcessorNode il compilerNode
+    where (Root compilerNode)  = c
+          (Root (ProcessorNode il _)) = p
+
+instance InputTo (Interpreter sl ml) (Processor ml) where
+  type NewRoot (Interpreter sl ml) (Processor ml) = Interpreter sl ml
+  inputTo i p = Root $ ProcessorNode il interpreterNode
+    where (Root interpreterNode) = i
+          (Root (ProcessorNode il _)) = p
+
 renderInputTo (CompilerNode _ _ _ Leaf) = \a b -> b
 renderInputTo (InterpreterNode _ _ (Leaf)) = mappend
 renderInputTo (CompilerNode _ _ _ (CompilerNode _ _ _ _)) = tIntoT
 renderInputTo (CompilerNode _ _ _ (InterpreterNode _ _ _)) = iIntoT
 renderInputTo (InterpreterNode _ _ (CompilerNode _ _ _ _)) = tOntoI
 renderInputTo (InterpreterNode _ _ (InterpreterNode _ _ _)) = iOntoI
+renderInputTo (ProcessorNode _ (CompilerNode _ _ _ _)) = tIntoP
+renderInputTo (ProcessorNode _ (InterpreterNode _ _ _)) = iIntoP
 
 drawElementTree :: (RealFloat n1, Typeable n1,
                     Renderable (Text n1) b1, Renderable (Path V2 n1) b1) =>
@@ -113,6 +134,10 @@ drawElementTree c@(CompilerNode sl tl il inputNode) =
 drawElementTree i@(InterpreterNode sl ml inputNode) =
   renderInputTo i input parent
   where parent = iDiagram sl ml
+        input  = drawElementTree inputNode
+drawElementTree i@(ProcessorNode l inputNode) =
+  renderInputTo i input parent
+  where parent = pDiagram l
         input  = drawElementTree inputNode
 drawElementTree Leaf = mempty
 

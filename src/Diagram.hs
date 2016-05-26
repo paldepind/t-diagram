@@ -49,6 +49,8 @@ tDiagram sl tl il =
 
 iDiagram sl ml = tSquareTLR sl === tSquareRBL ml
 
+pDiagram l = tSquareTRL l
+
 iIntoT i t = alignBC i # translateY (-1) ||| strutX spc ||| alignTC t
 
 iOntoI i1 i2 = alignBC i1 === strutY spc === alignTC i2
@@ -57,3 +59,7 @@ tOntoI t i = alignBC t === strutY spc === alignTC i
 
 tIntoT t1 t2 = alignBR t1 # translate ((1 - spc) *^ dir) `atop` alignTL t2
   where dir = V2 1 (-1)
+
+tIntoP t p = alignBC t === strutY spc === alignTC p
+
+iIntoP i p = alignBC i === strutY spc === alignTC p
